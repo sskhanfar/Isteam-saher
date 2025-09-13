@@ -5,8 +5,8 @@ import numpy as np
 def CalculateMomentWithML(input_list):
     bt, bb, hw, tt, tb, tw = input_list
     # حساب الوزن kg/m
-    area_m2 = (hw*tw + bt*tt + bb*tb) / 1e6  # mm^2 -> m^2
-    Weight = area_m2 * 7850  # kg per 1 m length
+    area_m2 = (hw*tw + bt*tt + bb*tb)   # mm^2 -> m^2
+    Weight = area_m2 * 7850 * 5000 * 1e-9 # kg per 1 m length
 
     # Normalization
     X_max = [300,300,400,5,5,5]
@@ -77,4 +77,5 @@ with col2:
     else:
         st.write("Enter parameters and press **Calculate**")
 
-    st.image("Form2.jpg", caption="I-section", use_column_width=True)
+    st.image("Form2.jpg", caption="I-section", width=250)
+
