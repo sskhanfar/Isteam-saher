@@ -1,12 +1,14 @@
 import streamlit as st
 import numpy as np
 
-# --- الدالة الأصلية ---
+# --- الحسابات ---
 def CalculateMomentWithML(input_list):
     bt, bb, hw, tt, tb, tw = input_list
-    area_m2 = (hw*tw + bt*tt + bb*tb) / 1e6  
-    Weight = area_m2 * 7850  
+    # حساب الوزن kg/m
+    area_m2 = (hw*tw + bt*tt + bb*tb) / 1e6  # mm^2 -> m^2
+    Weight = area_m2 * 7850  # kg per 1 m length
 
+    # Normalization
     X_max = [300,300,400,5,5,5]
     X_min = [150,150,250,3.5,3.5,3.5]
     Y_max = [1,1,1,1,1,1]
@@ -17,7 +19,6 @@ def CalculateMomentWithML(input_list):
         normalised_input.append(
             (Y_max[i]-Y_min[i])*(input_list[i]-X_min[i]) / (X_max[i] - X_min[i]) + Y_min[i]
         )
-
     input_array = np.array(normalised_input)
 
     IW1 = np.array([
@@ -30,33 +31,38 @@ def CalculateMomentWithML(input_list):
         [-0.138327894250618,0.00790030708370294,0.105997705187058,-0.170387184230914,0.0173875070809942,0.131441139661752],
         [-0.535232566983595,-0.0308597947018132,-0.0969261634495595,0.239695220581758,-0.018406012081025,0.032431826631276]
     ])
-    b1 = np.array([-1.36435212, -0.63093577, -0.65532611, -1.0326336, -0.98025896, 0.477132966, 0.485756574, -1.28729545])
+    b1 = np.array([-1.36435212, -0.63093577, -0.65532611, -1.0326336, -0.98025896, 
+                   0.477132966, 0.485756574, -1.28729545])
 
-    mid_layer = np.matmul(IW1, input_array) + b1 
+    mid_layer = np.matmul(IW1, input_array) + b1
     mid_layer_sigmoid = (2/(1+np.exp(-2*mid_layer))-1)
 
-    LW2 = np.array([-0.17049309, 2.986669, 5.836611, -0.25705, -2.3145, -0.91166, 3.201017, -0.29726])
+    LW2 = np.array([-0.17049309, 2.986669, 5.836611, -0.25705, 
+                    -2.3145, -0.91166, 3.201017, -0.29726])
     b2 = np.array([1.510587286])
-     
+
     Moment_normalised = np.matmul(LW2, mid_layer_sigmoid) + b2
-    Moment = (Moment_normalised - (-1)) / (1 -(-1)) * (213634.9471958876 - 62055.0401490485) + 62055.0401490485
+    Moment = (Moment_normalised - (-1)) / (1 - (-1)) * \
+             (213634.9471958876 - 62055.0401490485) + 62055.0401490485
+
     return float(Moment), float(Weight)
 
 # --- واجهة Streamlit ---
 st.set_page_config(page_title="I-section Calculator", layout="wide")
 
-st.markdown("<h1 style='text-align:center;'>Simply supported a solid monosymmetric I-section steel beam</h1>", unsafe_allow_html=True)
+st.title("Simply supported a solid monosymmetric I-section steel beam")
 
-col1, col2 = st.columns([1,1])
+col1, col2 = st.columns([1,1.3])
 
 with col1:
     st.subheader("Geometric Parameters")
-    bt = st.number_input("Top Flange Width (bt) mm", min_value=150.0, max_value=300.0, value=200.0, step=0.1)
-    bb = st.number_input("Bottom Flange Width (bb) mm", min_value=150.0, max_value=300.0, value=200.0, step=0.1)
-    hw = st.number_input("Web Height (hw) mm", min_value=250.0, max_value=400.0, value=300.0, step=0.1)
-    tt = st.number_input("Top Flange Thickness (tt) mm", min_value=3.5, max_value=5.0, value=4.0, step=0.1)
-    tb = st.number_input("Bottom Flange Thickness (tb) mm", min_value=3.5, max_value=5.0, value=4.0, step=0.1)
-    tw = st.number_input("Web Thickness (tw) mm", min_value=3.5, max_value=5.0, value=4.0, step=0.1)
+
+    bt = st.number_input("Top Flange Width (bt) [mm]", min_value=150.0, max_value=300.0, value=200.0, step=0.1, help="Allowed range: 150 - 300 mm")
+    bb = st.number_input("Bottom Flange Width (bb) [mm]", min_value=150.0, max_value=300.0, value=200.0, step=0.1, help="Allowed range: 150 - 300 mm")
+    hw = st.number_input("Web Height (hw) [mm]", min_value=250.0, max_value=400.0, value=300.0, step=0.1, help="Allowed range: 250 - 400 mm")
+    tt = st.number_input("Top Flange Thickness (tt) [mm]", min_value=3.5, max_value=5.0, value=4.0, step=0.1, help="Allowed range: 3.5 - 5 mm")
+    tb = st.number_input("Bottom Flange Thickness (tb) [mm]", min_value=3.5, max_value=5.0, value=4.0, step=0.1, help="Allowed range: 3.5 - 5 mm")
+    tw = st.number_input("Web Thickness (tw) [mm]", min_value=3.5, max_value=5.0, value=4.0, step=0.1, help="Allowed range: 3.5 - 5 mm")
 
     if st.button("Calculate"):
         moment, weight = CalculateMomentWithML([bt, bb, hw, tt, tb, tw])
@@ -67,8 +73,8 @@ with col2:
     st.subheader("After predicting")
     if "moment" in st.session_state:
         st.success(f"Predicted moment Capacity = {st.session_state['moment']:.2f} kN·mm")
-        st.success(f"Weight = {st.session_state['weight']:.4f} kg/m")
+        st.info(f"Weight = {st.session_state['weight']:.4f} kg/m")
     else:
-        st.info("Enter values and click Calculate to see results")
+        st.write("Enter parameters and press **Calculate**")
 
     st.image("Form2.jpg", caption="I-section", use_column_width=True)
